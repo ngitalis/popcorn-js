@@ -39,6 +39,33 @@ Element.prototype.leftTopScreen = function ()
 	myVideo = document.getElementsByTagName(options.vidTarget)[0];
 	var popcornInstance = this;
 
+
+
+
+
+	//Overall Measurements
+	var YHeight = ctx.height/2; // Height of the current time portion of canvas
+	var YOffset = ctx.height/2;// Height of the timeline portion of canvas
+	var barY = ctx.height*0.10; // The small amount of border for height
+
+	//Timeline measurements
+	var timeLineStartX = barX; // 5% of the canvas width (leaves room for pause/play)
+	var timeLineStartY = barY+YOffset; // start half way down plus a bit.  Gives room for current time.
+	var timeLineWidth =  ctx.width-(6*barX); // 1 bar the beginning, and 4 at the end for controls
+	var timeLineHeight = YHeight-(2*barY); // how far down it should go.
+	var timeLineMarkerWidth = 2;
+
+	//Volume Control Measurements
+	var volumeXStart = timeLineWidth+timeLineStartX+(barX*2);
+	var volumeYStart = (YHeight*0.20)+YOffset;
+	var volumeBarXStart = volumeXStart+(barX/2)+(barX/4);
+	var maxVolumeWidth = barX*2;
+
+	//current time box measurements
+	var boxWidth = 25; 
+	var boxHeight = 15;
+
+
 	//When media element finishes loading meta data, call function
 	myVideo.addEventListener('loadedmetadata', function() {
 
@@ -52,32 +79,85 @@ Element.prototype.leftTopScreen = function ()
 				{	
 					//grab track events (needed to draw)
 					arrayTrack = Popcorn.getTrackEvents(popcornInstance);
-					YHeight = ctx.height/2;
-					YOffset = ctx.height/2;
-					//Draw everything
-
 					//Clear timeline
 					ctx.clearRect(0, 0, ctx.width+50, ctx.height);
-
-					//Color timeline
+					//Color timeline background
 					ctx.fillStyle   = '#000'; //change to hex for black
 					ctx.fillRect(0, YOffset, ctx.width, YHeight);
+					//Create timeline bar
+					ctx.fillStyle = '#C2DFFF'
+					ctx.fillRect(timeLineStartX, timeLineStartY, timeLineWidth, timeLineHeight);
+					ctx.fillStyle   = '#fff';
+					ctx.fillRect(timeLineStartX, timeLineStartY, timeLineWidth*(myVideo.currentTime/vidDuration), timeLineHeight);
+
+					//Change video duration from seconds to proper time format to print
+					minuteNum = Math.floor(vidDuration/60);
+					secondNum = Math.floor(vidDuration) - minuteNum*60;
+					extraZero="";
+					if(Math.floor(secondNum/10)==0)
+					{
+						extraZero="0";
+					}
+					ctx.font ="8pt Arial";
+					ctx.fillStyle   = '#fff';
+					ctx.fillText(minuteNum+":"+extraZero+secondNum, (timeLineWidth+timeLineStartX), (timeLineStartY+(barY*3)));				
+
+
+					//Draw volume control
+					ctx.fillStyle   = '#fff';
+					ctx.beginPath();
+					//start Position
+					ctx.moveTo(volumeXStart, (timeLineStartY+barY));
+					//beside start position over by the up slant
+					ctx.lineTo(volumeXStart+(barX/4), (timeLineStartY+barY));
+					//top of the up slant
+					ctx.lineTo(volumeXStart+(barX/2), timeLineStartY);
+					//bottom of the down slant
+					ctx.lineTo(volumeXStart+(barX/2), (timeLineStartY+timeLineHeight));
+					//after the down slant
+					ctx.lineTo(volumeXStart+(barX/4), (timeLineStartY+timeLineHeight-barY));
+					//under start position
+					ctx.lineTo(volumeXStart, (timeLineStartY+timeLineHeight-barY));
+					//back to start position
+					ctx.lineTo(volumeXStart, (timeLineStartY+barY));
+					ctx.fill();
+
 
 					
+					ctx.fillStyle = '#C8BBBE'
+					//volume Potential
+					ctx.fillRect(volumeBarXStart, timeLineStartY, maxVolumeWidth, timeLineHeight);
 
-					//Create timeline bar
-					barY = ctx.height*0.10;
-					ctx.fillStyle   = '#fff'; //change to hex for white
-					ctx.fillRect(barX, barY+YOffset, ctx.width-(2*barX), YHeight-(2*barY));
+					
+					
+					//Draw a red cross across volume image if muted
+					if(myVideo.muted)
+					{
+						ctx.strokeStyle   = '#f00';
+						ctx.lineWidth = 2;
+						ctx.beginPath();
+						ctx.moveTo(volumeXStart, timeLineStartY);
+						ctx.lineTo(volumeXStart+(barX/2), (timeLineStartY+timeLineHeight));
+						ctx.moveTo(volumeXStart+(barX/2), timeLineStartY);
+						ctx.lineTo(volumeXStart, (timeLineStartY+timeLineHeight	));
+						ctx.stroke(); 
+					}
+					else
+					{
+						//volume current
+						currentSound = myVideo.volume;
+						ctx.fillStyle   = '#fff';
+						ctx.fillRect(volumeBarXStart, timeLineStartY, maxVolumeWidth*currentSound, timeLineHeight);
+					}
+
 
 					//Create current time marker on timelinebar
 					ctx.fillStyle   = '#000'; //chang to hex for black
-					var curX = Math.round((myVideo.currentTime/vidDuration)*(ctx.width-(2*barX)));
-					ctx.fillRect(curX+barX, barY+YOffset, 2, YHeight-(2*barY));
-					
-					boxWidth = 25;
-					boxHeight = 15;
 
+					//Position extra to be added from timeline
+					var curX = Math.round((myVideo.currentTime/vidDuration)*(timeLineWidth));	
+					markerXPosition = curX+timeLineStartX;
+					ctx.fillRect(markerXPosition, timeLineStartY, timeLineMarkerWidth, YHeight-(2*barY));
 					ctx.fillStyle   = '#000';
 					
 					//using this function so that the current time doesn't change part way through
@@ -85,11 +165,11 @@ Element.prototype.leftTopScreen = function ()
 
 					ctx.beginPath();
 					ctx.moveTo(curX+barX, barY+YOffset);
-					ctx.lineTo(((curX+barX)-(boxWidth/2)), ((barY+YOffset)-(boxHeight*0.20)));
-					ctx.lineTo(((curX+barX)-(boxWidth/2)), 0+(boxHeight*0.05));
-					ctx.lineTo(((curX+barX)+(boxWidth/2)), 0+(boxHeight*0.05));
-					ctx.lineTo(((curX+barX)+(boxWidth/2)), ((barY+YOffset)-(boxHeight*0.20)));
-					ctx.lineTo(curX+barX, barY+YOffset);
+					ctx.lineTo(((markerXPosition)-(boxWidth/2)), ((timeLineStartY)-(boxHeight*0.20)));
+					ctx.lineTo(((markerXPosition)-(boxWidth/2)), 0+(boxHeight*0.05));
+					ctx.lineTo(((markerXPosition)+(boxWidth/2)), 0+(boxHeight*0.05));
+					ctx.lineTo(((markerXPosition)+(boxWidth/2)), ((timeLineStartY)-(boxHeight*0.20)));
+					ctx.lineTo(markerXPosition, timeLineStartY);
 					ctx.fill();
 					ctx.font ="8pt Arial";
 					
@@ -107,11 +187,11 @@ Element.prototype.leftTopScreen = function ()
 					
 					ctx.fillStyle   = '#fff';
 
-					//draw play button
+					//draw play button - all calculations based on the beginning gap (barX)
 					if(myVideo.paused||myVideo.currentTime==myVideo.duration)
 					{
-						triangleFarX = (ctx.width*0.05) - ((ctx.width*0.05)*0.20);
-						triangleX = (ctx.width*0.05)*0.20;
+						triangleFarX = (barX) - (barX*0.20);
+						triangleX = (barX)*0.20;
 						triangleY = (YHeight*0.20);
 						triangleFarY = YHeight - (YHeight*0.20);
 						triangleMidY = (YHeight - YHeight*0.20)/2;
@@ -123,8 +203,8 @@ Element.prototype.leftTopScreen = function ()
 					}
 					else //draw pause button
 					{
-						seperationVal = ((ctx.width*0.05) - ((ctx.width*0.05)*0.20))/4;
-						firstRectXClose = (ctx.width*0.05)*0.20;
+						seperationVal = ((barX) - (barX*0.20))/4;
+						firstRectXClose = (barX)*0.20;
 						secondRectXClose = firstRectXClose + seperationVal + (seperationVal/2);
 						rectYTop = (YHeight*0.20);
 						rectYBottom = YHeight - ((YHeight*0.20)*2);
@@ -135,9 +215,10 @@ Element.prototype.leftTopScreen = function ()
 						
 					}
 
+					//display the track events as lines
 					for (var i = 0; i < arrayTrack.length; i++)
 					{
-						var itemX = Math.round((arrayTrack[i].start/vidDuration)*(ctx.width-(2*barX)))+barX;
+						var itemX = Math.round((arrayTrack[i].start/vidDuration)*(timeLineWidth))+barX;
 						ctx.fillStyle   = '#00f';
 						ctx.fillRect(itemX+2, 0+YOffset, 1, ctx.height);
 					}
@@ -167,9 +248,9 @@ Element.prototype.leftTopScreen = function ()
 				var finished = 0;
 				for (var i = 0; i < arrayTrack.length; i++)
 				{
-					var itemX = Math.round((arrayTrack[i].start/vidDuration)*ctx.width)+barX;
+					var itemX = Math.round((arrayTrack[i].start/vidDuration)*timeLineWidth)+barX;
 					//pop div if match to an event
-					if(itemX+1>=mX&&itemX-1<=mX&&mY>=YOffset)
+					if(itemX+3>=mX&&itemX+1<=mX&&mY>=YOffset)
 					{
 						
 						var newdiv = document.createElement('div');
@@ -196,19 +277,20 @@ Element.prototype.leftTopScreen = function ()
 			}
 
 	}
+	//Mouseup event used for interaction with visualized timeline
 	qctx.addEventListener("mouseup", function (e)
 						{
-							YOffset = ctx.height/2;
 							var xy = qctx.leftTopScreen();
 							var mouseX = e.pageX;
 							var mX = mouseX - xy[0];
 							var mouseY = e.pageY;
 							var mY = mouseY - xy[1];
-							if(mX>=barX&&mX<=(ctx.width-barX)&&mY>=YOffset)
+							//if user clicks on timeline bar, set the video's current time
+							if(mX>=barX&&mX<=(timeLineStartX+timeLineWidth)&&mY>=YOffset)
 							{
-								myVideo.currentTime = ((mX-barX)/(ctx.width-(2*barX)))*vidDuration;
+								myVideo.currentTime = ((mX-barX)/(timeLineWidth))*vidDuration;
 							}
-							else if(mX<barX&&mY>=YOffset)
+							else if(mX<barX&&mY>=YOffset) //if user clicks on pause/play, toggle
 							{
 
 								if(myVideo.paused)
@@ -218,6 +300,23 @@ Element.prototype.leftTopScreen = function ()
 								else
 								{
 									myVideo.pause();
+								}
+							}
+							else if(mX>=volumeBarXStart&&(volumeBarXStart+maxVolumeWidth)>=mX)
+							{
+								//if user clicks on volume bar, change volume
+								myVideo.volume = ((mX-volumeBarXStart)/(maxVolumeWidth));
+							}
+							else if(mX>=volumeXStart&&mX<=(volumeXStart+(barX/2)))
+							{
+								//if user clicks on volume image, toggle muted
+								if(myVideo.muted)
+								{
+									myVideo.muted=false;
+								}
+								else
+								{
+									myVideo.muted=true;
 								}
 							}
 						}, false);		

@@ -30,17 +30,15 @@ Element.prototype.leftTopScreen = function ()
 	qctx = document.getElementById(options.target);
         ctx = qctx.getContext('2d');
 
-	//Set canvas parameters
-	ctx.width=options.canvasWidth;
-	ctx.height=options.canvasHeight;
-	barX = ctx.width*0.05;
-	
 	//Get media element and save popcorn instance
 	myVideo = document.getElementsByTagName(options.vidTarget)[0];
 	var popcornInstance = this;
 
-
-
+	//Set canvas parameters
+	ctx.width= myVideo.width;
+	ctx.height= 20;
+	barX = ctx.width*0.05;
+	
 
 
 	//Overall Measurements
@@ -258,11 +256,12 @@ Element.prototype.leftTopScreen = function ()
 						newdiv.style.display = 'block';
 						newdiv.style.position = 'absolute';
 						newdiv.style.background = 'yellow';
-						newdiv.style.top = mouseY;
+						newdiv.style.top = mouseY - 20;
 						newdiv.style.left = mouseX;
 						newdiv.style.fontSize = "10px";
 						newdiv.innerHTML = "Event Info </br> Start Time: " + arrayTrack[i].start + " seconds";	
-						document.body.appendChild(newdiv);
+                        var vidDiv = document.getElementById('controls');
+						vidDiv.appendChild(newdiv);
 						finished=1;
 					}
 				}
